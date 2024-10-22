@@ -64,6 +64,7 @@ now_string = now.strftime("%d-%m-%Y")
 
 class Installation(BaseModel):
     date: str = now_string
+    days: int = 7
     location: Location
     altitude: int = 70
     tilt: int = 44

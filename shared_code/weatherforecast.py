@@ -121,9 +121,14 @@ def getOpenMeteoData(installation):
         _type_ list of dicts: list of dicts, every dict has the forecast for parameters:...
     """
     location = installation.get("location")
+    d = datetime.strptime(installation.get("date"), "%d-%m-%Y")
+    date_start = d.strftime("%Y-%m-%d")
+    date_end = (d + pd.Timedelta(days=installation.get("days") - 1)).strftime(
+        "%Y-%m-%d"
+    )
     timezone = installation.get("timezone")
     tz = pytz.timezone(timezone)
-    params = f'?latitude={location["lat"]}&longitude={location["lng"]}&timezone={timezone}&hourly=temperature_2m,pressure_msl,relativehumidity_2m,windspeed_10m,winddirection_10m,cloudcover,weathercode&windspeed_unit=ms'
+    params = f'?latitude={location["lat"]}&longitude={location["lng"]}&timezone={timezone}&hourly=temperature_2m,pressure_msl,relativehumidity_2m,windspeed_10m,winddirection_10m,cloudcover,weathercode&windspeed_unit=ms&start_date={date_start}&end_date={date_end}'
     url = "https://api.open-meteo.com/v1/forecast" + params
     resp = requests.get(url).json()
 
