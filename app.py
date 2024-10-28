@@ -101,14 +101,14 @@ class Installation(BaseModel):
 
     @validator("totalWattPeak")
     def validate_totalWattPeak(cls, value):
-        if not (0 <= value < 20000):
-            raise ValueError("totalWattPeak must be between 0 and 20000")
+        if value < 0:
+            raise ValueError("totalWattPeak must be positive")
         return value
 
     @validator("wattInvertor")
     def validate_wattInvertor(cls, value):
-        if not (0 <= value < 10000):
-            raise ValueError("wattInvertor must be between 0 and 10000")
+        if value < 0:
+            raise ValueError("wattInvertor must be positive")
         return value
 
     @validator("timezone")
