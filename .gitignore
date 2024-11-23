@@ -163,3 +163,4 @@ cython_debug/
 # folder created by pytest 'coverage html' for coverage details
 htmlcov
 .coverage
+/*.ipynb
