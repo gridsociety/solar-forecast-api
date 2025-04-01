@@ -10,7 +10,7 @@ test_site = {
     "azimuth": 170,
     "totalWattPeak": 7400,
     "wattInvertor": 5040,
-    "timezone": "Europe/Brussels",
+    "timezone": "UTC",
 }
 
 client = TestClient(app)

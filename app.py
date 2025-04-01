@@ -36,7 +36,7 @@ This API helps you optimizing your Solar energy by predicting. 🚀
   "azimuth": 170,
   "totalWattPeak": 7400,
   "wattInvertor": 5040,
-  "timezone": "Europe/Brussels"
+  "timezone": "UTC"
 }
 """
 
@@ -71,7 +71,7 @@ class Installation(BaseModel):
     azimuth: int = 170
     totalWattPeak: int = 7400
     wattInvertor: int = 5040
-    timezone: str = "Europe/Brussels"
+    timezone: str = "UTC"
 
     @validator("date")
     def validate_date(cls, value):
