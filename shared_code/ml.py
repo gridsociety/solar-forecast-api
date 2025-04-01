@@ -7,12 +7,10 @@ import sklearn
 myModel_file = open("solar_mlp_model.pkl", "rb")
 mlp = pickle.load(myModel_file)
 
+
 # helper function clips positive Power to zero before sunrise and after sunset
 def eliminate_power_outside_sunrise_sunset(row):
-    Power = row["P_predicted"]
-    if row["clear_sky"] == 0 or row["P_predicted"] < 0:
-        Power = 0
-    return int(Power)
+    return int(max(min(row["P_predicted"], row["clear_sky"]), 0))
 
 
 def enrichDataFrameWithPrediction(dSet):
