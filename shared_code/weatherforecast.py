@@ -7,7 +7,7 @@ import pytz
 
 import pandas as pd
 
-API_KEY = os.environ["OPENWEATHERMAP_API_KEY"]
+API_KEY = os.environ.get("OPENWEATHERMAP_API_KEY", "")
 
 
 def map_open_meteo_to_openweathermap_code(code):
