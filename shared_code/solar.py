@@ -7,6 +7,7 @@ import pvlib
 from pvlib import clearsky, atmosphere, solarposition, irradiance
 from pvlib.location import Location
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 def get_irradiance(site_location, date, tilt, surface_azimuth, **kwargs):
@@ -21,16 +22,16 @@ def get_irradiance(site_location, date, tilt, surface_azimuth, **kwargs):
     Returns:
         pandas dataframe: {'GHI': clearsky['ghi'], 'POA': POA_irradiance['poa_global']}
     """
-
+    zone = ZoneInfo(site_location.tz)
     # Creates one day's worth of 15 min intervals
     if kwargs:
         # return 48h x 4(15min) + 1 timestamps from startEpochHour upto and ending stopEpochHour
-        start = datetime.fromtimestamp(kwargs["startEpochHour"])
-        stop = datetime.fromtimestamp(kwargs["stopEpochHour"])
-        times = pd.date_range(start=start, end=stop, freq="15min", tz=site_location.tz)
+        start = datetime.fromtimestamp(kwargs["startEpochHour"], tz=zone)
+        stop = datetime.fromtimestamp(kwargs["stopEpochHour"], tz=zone)
+        times = pd.date_range(start=start, end=stop, freq="15min", tz=zone)
     else:
         # return 24h x 4(15min) timstamps for one complete day
-        times = pd.date_range(date, freq="15min", periods=4 * 24, tz=site_location.tz)
+        times = pd.date_range(date, freq="15min", periods=4 * 24, tz=zone)
 
     # Generate clearsky data using the Ineichen model, which is the default
     # The get_clearsky method returns a dataframe with values for GHI, DNI,
