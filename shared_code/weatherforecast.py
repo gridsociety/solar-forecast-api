@@ -128,11 +128,12 @@ def getOpenMeteoData(installation):
     )
     timezone = installation.get("timezone")
     tz = pytz.timezone(timezone)
-    params = f'?latitude={location["lat"]}&longitude={location["lng"]}&timezone={timezone}&hourly=temperature_2m,pressure_msl,relativehumidity_2m,windspeed_10m,winddirection_10m,cloudcover,weathercode&windspeed_unit=ms&start_date={date_start}&end_date={date_end}'
+    params = f'?latitude={location["lat"]}&longitude={location["lng"]}&timezone={timezone}&minutely_15=temperature_2m,pressure_msl,relativehumidity_2m,windspeed_10m,winddirection_10m,cloudcover,weathercode&windspeed_unit=ms&start_date={date_start}&end_date={date_end}'
     url = "https://api.open-meteo.com/v1/forecast" + params
+    print(url)
     resp = requests.get(url).json()
 
-    df_OM = pd.DataFrame.from_dict(resp["hourly"])
+    df_OM = pd.DataFrame.from_dict(resp["minutely_15"])
 
     # °C to °K and round to 1 decimal
     df_OM["temperature_2m"] = df_OM["temperature_2m"].apply(
@@ -177,27 +178,12 @@ def getOpenMeteoData(installation):
         },
     )
 
-    # create copie for every 15 min and merge
-    df_15 = df_OM.copy()
-    df_15["dt"] = df_15["dt"] + 900
-    df_30 = df_OM.copy()
-    df_30["dt"] = df_OM["dt"] + 1800
-    df_45 = df_OM.copy()
-    df_45["dt"] = df_OM["dt"] + 2700
-
-    weather = df_OM.merge(df_15, how="outer")
-    weather = weather.merge(df_30, how="outer")
-    weather = weather.merge(df_45, how="outer")
-
     # sort by timestamp 'dt'
-    weather.sort_values(["dt"], inplace=True)
-    weather.reset_index(drop=True, inplace=True)
-
-    # delete last 3 rows: we do not need +15min,30min,45min for last 'hour'
-    weather = weather.iloc[:-2]
+    df_OM.sort_values(["dt"], inplace=True)
+    df_OM.reset_index(drop=True, inplace=True)
 
     logging.info(f"Succes Open-Meteo API call")
-    return weather
+    return df_OM
 
 
 def getOpenWeatherData(installation):
