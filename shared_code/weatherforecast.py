@@ -8,6 +8,15 @@ import pytz
 import pandas as pd
 
 API_KEY = os.environ.get("OPENWEATHERMAP_API_KEY", "")
+# Separate connect/read inactivity limits, leaving room for the caller's 30s
+# timeout. These are not a total wall-clock deadline for the whole forecast.
+WEATHER_TIMEOUT = (3, 10)
+
+
+def get_weather_json(url):
+    response = requests.get(url, timeout=WEATHER_TIMEOUT)
+    response.raise_for_status()
+    return response.json()
 
 
 def map_open_meteo_to_openweathermap_code(code):
@@ -131,7 +140,7 @@ def getOpenMeteoData(installation):
     params = f'?latitude={location["lat"]}&longitude={location["lng"]}&timezone={timezone}&minutely_15=temperature_2m,pressure_msl,relativehumidity_2m,windspeed_10m,winddirection_10m,cloudcover,weathercode&windspeed_unit=ms&start_date={date_start}&end_date={date_end}'
     url = "https://api.open-meteo.com/v1/forecast" + params
     print(url)
-    resp = requests.get(url).json()
+    resp = get_weather_json(url)
 
     df_OM = pd.DataFrame.from_dict(resp["minutely_15"])
 
@@ -198,7 +207,7 @@ def getOpenWeatherData(installation):
     """
     location = installation.get("location")
     url = f'https://api.openweathermap.org/data/2.5/onecall?lat={location["lat"]}&lon={location["lng"]}&appid={API_KEY}'
-    resp = requests.get(url).json()
+    resp = get_weather_json(url)
 
     df_OWM = pd.DataFrame.from_dict(resp["hourly"])
 
