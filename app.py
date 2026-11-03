@@ -7,6 +7,7 @@ import json
 import pytz
 from datetime import datetime
 import uvicorn
+import requests
 
 description = """
 This API helps you optimizing your Solar energy by predicting. 🚀
@@ -141,17 +142,26 @@ async def root():
 
 
 @app.post("/forecast")
-async def calc_forecast(installation: Installation, provider: str = "openmeteo"):
+def calc_forecast(installation: Installation, provider: str = "openmeteo"):
     inst = installation.dict()
 
     # list of dicts : get weather forecast + day_of_year => After this we only need the clearSky power
     # OpnemweatherMap: dt : (date= epoch in sec-10digits)
 
     # depending on query param: ?provider='...' in POST
-    if provider == "openweathermap":
-        forecast_15min_df = weatherforecast.getOpenWeatherData(inst)
-    elif provider == "openmeteo":
-        forecast_15min_df = weatherforecast.getOpenMeteoData(inst)
+    # FastAPI runs this synchronous handler in its worker pool: weather I/O
+    # must not block the event loop serving the other HTTP requests.
+    try:
+        if provider == "openweathermap":
+            forecast_15min_df = weatherforecast.getOpenWeatherData(inst)
+        elif provider == "openmeteo":
+            forecast_15min_df = weatherforecast.getOpenMeteoData(inst)
+        else:
+            raise HTTPException(status_code=422, detail="Unknown weather provider")
+    except requests.Timeout:
+        raise HTTPException(status_code=504, detail="Weather provider timed out")
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Weather provider unavailable")
 
     # Determine startHour and stopHour
     startEpochHour, stopEpochHour = (

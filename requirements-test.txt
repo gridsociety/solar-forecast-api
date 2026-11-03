@@ -1,0 +1,3 @@
+-r requirements.txt
+# Compatible with the pinned Starlette TestClient.
+httpx==0.23.3

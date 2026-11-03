@@ -76,3 +76,25 @@ This is a web application [www.solar-forecast.org](https://solar-forecast.org) f
 ## CI/CD
 
 [Devop guidlines](./DEVOPS.md)
+
+### Weather failures and responsiveness
+
+Weather requests use a 3-second connect timeout and a 10-second read inactivity
+timeout. These are not a total forecast deadline. Provider timeouts return HTTP
+504; connection and HTTP failures return 502. The synchronous forecast handler
+runs in FastAPI's worker pool so weather I/O does not block the HTTP event loop.
+
+The image health check probes `/openapi.json` locally. It detects an unresponsive
+HTTP server; it does not check forecast freshness or automatically restart an
+unhealthy container. Deploy the rebuilt image to replace a currently stuck
+process, then verify a real forecast and the planner's fallback behaviour.
+
+Run the offline regression tests with:
+
+```sh
+pip install -r requirements-test.txt
+python -m pytest test_forecast_resilience.py
+```
+
+The older `test_api.py` forecast tests call live weather providers and are not
+part of this offline check.
