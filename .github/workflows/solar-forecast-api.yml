@@ -1,0 +1,80 @@
+name: solar-forecast-api
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: eu-west-1
+  ECR_REPOSITORY: solar-forecast-api
+
+jobs:
+  test:
+    name: Test solar-forecast-api
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements-test.txt
+      - name: Run offline tests
+        run: python -m pytest -vv test_forecast_resilience.py
+
+  docker:
+    name: Build, push and deploy solar-forecast-api
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy-solar-forecast-api
+      cancel-in-progress: false
+    permissions:
+      id-token: write # Required to request the OIDC token for AWS
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::732759971618:role/github-actions-solar-forecast-api-main-branch
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Build and push Docker image to Amazon ECR
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha,scope=build-solar-forecast-api
+          cache-to: type=gha,scope=build-solar-forecast-api,mode=max
+      - name: Update the solar_forecast_api container on iotcloud
+        env:
+          SSH_USER: grid
+          SSH_HOST: 37.27.30.201
+          SSH_PRIVATE_KEY: ${{ secrets.IOTCLOUD_KEY }}
+          SSH_KNOWN_HOSTS: 37.27.30.201 ${{ vars.IOTCLOUD_HOST_KEY }}
+          DOCKER_USERNAME: ${{ steps.login-ecr.outputs.docker_username_732759971618_dkr_ecr_eu_west_1_amazonaws_com }}
+          DOCKER_PASSWORD: ${{ steps.login-ecr.outputs.docker_password_732759971618_dkr_ecr_eu_west_1_amazonaws_com }}
+          DOCKER_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          DEPLOY_PATH: /srv/mqtt2timescale
+        run: ./scripts/ci-deploy.sh
